@@ -1,0 +1,387 @@
+---
+title: "Analyzing the ToothGrowth Data^[A part of this analysis report was submitted for the final project-Part2 of the Statistical Inference (Coursera) course at Johns Hopkins University]"
+author: "Aliakbar Safilian^[Email: a.a.safilian@gmail.com]"
+date: "December 13, 2018"
+output: 
+        pdf_document:
+          number_sections: yes
+          fig_caption: yes
+urlcolor: blue
+header-includes:
+  - \usepackage{color}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.align="center")
+```
+
+<!-- READ This for document check list:  https://github.com/lgreski/datasciencectacontent/blob/master/markdown/ToothGrowthChecklist.md -->
+
+# Overview
+We analyze the **ToothGrowth** data in the R **datasets** package. The data is about the effect of vitamin C on tooth growth in guinea pigs. In this data, ``the response is the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of *three dose levels* of vitamin C (**0.5**, **1**, and **2** mg/day) by one of two *delivery methods*, **orange juice** (coded as **OJ**) or **ascorbic acid** (a form of vitamin C and coded as **VC**).''^[https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html] We will further explore the data in the next section. 
+
+The structure of the rest of the report is as follows: In Sec. [2](#load-sum), we load the data, and perform some basic summary statistics. Moreover, we provide a basic summary of the data. Sec. [3](#length_analysis), we study the affects of dose levels and delivery methods in tooth growth, based on the sample data. In Sec. [4](#denisity), we study the denisties of the data and some of its subsets. Sec. [5](#hypothesis), we compare tooth growth with other elements in the data using by hypothesis tests. Sec. [6](#conclusion) concludes the report with our conclusions and the assumptions needed for them.  
+
+# The Data: Loading and Basic Summary Analysis {#load-sum}
+Let's first load the data, and take a look at its structure:
+
+```{r loading}
+library(datasets)
+data("ToothGrowth")
+str(ToothGrowth)
+```
+
+As we see, there are 60 observations with 3 variables in this data. Here is a brief explanation of the variables: **`r names(ToothGrowth)[1]`** denotes the *length* of the growth, **`r names(ToothGrowth)[2]`** represents the *delivery* (*supplement*) type (either **VC** or **OJ**), and **`r names(ToothGrowth)[3]`** denotes the *dose* in milligrams/day. We change the names of the variables to **Length**, **Supplement**, and **Dose**, respectively, in the following script:
+
+```{r Name_change}
+names(ToothGrowth) <- c("Length", "Supplement", "Dose")
+```
+
+
+The following script shows that there are only three unique values for **Dose**: $0.5, 1$, and $2$. To be able to make some elegant plots, we transform this variable into an equivalent factor one. 
+
+```{r}
+unique(ToothGrowth$Dose)
+ToothGrowth$Dose <- as.factor(ToothGrowth$Dose)
+```
+
+Let us have a summary of the data:
+```{r}
+summary(ToothGrowth)
+```
+
+<!-- Here is the standard deviation of the Length in the data:
+```{r}
+s <- sd(ToothGrowth$Length)
+s
+```
+-->
+
+# Growth Length by Dose Levels & Delivery Methods {#length_analysis}
+In the following, we extract the mean, standard deviation, and sum of growth length for each dose level:  
+```{r}
+library(dplyr)
+sum_dose <- as.data.frame(ToothGrowth %>% 
+        group_by(Dose) %>% 
+        summarize(Mean = mean(Length), SD = sd(Length), Sum = sum(Length)))
+sum_dose
+```
+
+The following script extracts the mean, the standard deviation, and sum of growth length for each delivery method:
+```{r}
+sum_supp <- as.data.frame(ToothGrowth %>% 
+        group_by(Supplement) %>% 
+        summarize(Mean = mean(Length), SD = sd(Length), Sum = sum(Length)))
+sum_supp
+```
+
+The following script extracts the mean, the standard deviation, and sum of growth length for each pair of dose level and delivery method:
+
+
+```{r chunk3} 
+sum_supp_dose <- as.data.frame(ToothGrowth %>% 
+        group_by(Supplement, Dose) %>% 
+        summarize(Mean = mean(Length), SD = sd(Length), Sum = sum(Length)))
+sum_supp_dose
+```
+
+In the rest of this seciton, we do some relevant exploratory analyses. 
+
+Fig. \ref{fig:length} represents the relationship between growth length and dose levels categorized by delivery methods. The *black solid line* represents the mean of growth (i.e., ~**`r round(mean(ToothGrowth$Length), 2)`**) in the whole data. A *dashed black* line represents the mean of growth for the associated delivery method (i.e., ~**`r round(sum_supp[1, 2], 2) `** and ~**`r round(sum_supp[2, 2], 2)`** for methods OJ and VC, respectively). The *red*, *green*, and *blue dashed* lines denote the mean of growth for dose levels 0.5, 1, and 2, respectively (i.e., ~**`r round(sum_dose[1, 2], 2)`**, ~**`r round(sum_dose[2, 2], 2)`**, and ~**`r round(sum_dose[3, 2], 2)`**, respectevily).   
+
+```{r, fig.height = 4, fig.width = 6, fig.cap="\\label{fig:length}Growth by Dose Levels and Delivery Metods"}
+library(ggplot2)
+x <- sum_supp[, 1:2]
+m <- mean(ToothGrowth$Length)
+qplot(Dose, Length, data = ToothGrowth, color = Dose, facets = .~Supplement) + geom_boxplot() +
+geom_hline(yintercept = m, linetype = "solid") + 
+geom_hline(aes(yintercept = Mean), x, linetype = "dashed") +
+geom_hline(yintercept = sum_dose[1, 2], color = "indianred2", linetype = "dashed") +
+geom_hline(yintercept = sum_dose[3, 2], color = "blue", linetype = "dashed") +
+geom_hline(yintercept = sum_dose[2, 2], color = "green4", linetype = "dashed") 
+```
+
+
+
+Some (interesting) observations from the above figure are as follow:
+
+- As expected, more dose levels results in more growth. 
+
+- The delivery method OJ has more positive impact on the growth than VC. 
+
+- Almost all growth length for dose level 0.5 (2, respectively) are under (above, respectively) the average growth in the data.
+
+- Almost all growth length for dose level 1 with delivery method OJ are above the average growth, while this is just the other way round for dose 1 with supplement VC.  
+
+- The average growth for dose level 1 is very close to the overall average growth, while the average growth for dose level 2 (0.5, respectively) is above (under, respectively) of the overall average growth. 
+
+
+# Density Distribution {#density}
+In this section, we study the denisty distribution of the data and some of its subsets. The density distribution of growth length in the whole data looks like the curve in Fig. \ref{fig:density-len}, where its mean and standard deviation are approximately **`r round(m, 2)`** and **`r round(sd(ToothGrowth$Length), 2)`**, respecvtivly. The red dashed line represents the mean of the distribution.      
+```{r, fig.height = 3, fig.width = 4, fig.width = 6, fig.cap="\\label{fig:density-len}The Density Distribution of Growth Length"}
+ggplot(ToothGrowth, aes(x=Length)) +
+        geom_histogram(aes(y=..density..), binwidth=2, colour="black", fill="white") + 
+        geom_density(alpha=.2, fill="#FF6666") +
+        geom_vline(xintercept = m, color = "red", linetype = "dashed")
+```
+
+In Fig. \ref{fig:density-len-dose}, we see the density of growth length for each dose level. The mean and standard deviation of growth for dose level 0.5 are approximately **`r round(sum_dose[1, 2], 2)`** and **`r round(sum_dose[1, 3], 2)`**, respecvtivly. They are approximately **`r round(sum_dose[2, 2], 2)`** and **`r round(sum_dose[2, 3], 2)`** for dose level 1, and **`r round(sum_dose[3, 2], 2)`** and **`r round(sum_dose[3, 3], 2)`** for dose level 2. In Fig. \ref{fig:density-len-dose}, the mean of the densities are represented with red dashed lines.  
+```{r, fig.height = 3, fig.width = 6, fig.cap="\\label{fig:density-len-dose}The Density Distribution of Growth Length by Dose Levels"}
+y <- sum_dose[, 1:2]
+ggplot(ToothGrowth, aes(x=Length)) +
+        geom_histogram(aes(y=..density..), binwidth=2, colour="black", fill="white") + 
+        geom_density(alpha=.2, fill="#FF6666") +
+        facet_grid(facets = .~Dose) + 
+        geom_vline(aes(xintercept = Mean), y, color = "red", linetype = "dashed") 
+```
+
+Fig. \ref{fig:density-len-supp} represents the density distribution of growth length for each delivery method. The mean and the standard deviation of growth for the delivery method OJ (VC, respectively) are approximately **`r round(sum_supp[1, 2], 2)`** and **`r round(sum_supp[1, 3], 2)`** (**`r round(sum_supp[2, 2], 2)`** and **`r round(sum_supp[2, 3], 2)`**, respectively), respecvtivly. The mean of the densities are represented with red dashed lines.   
+```{r, fig.height = 3, fig.width = 6, fig.cap="\\label{fig:density-len-supp}The Density Distribution of Growth Length by Delivery Methods"}
+z <- sum_supp[, 1:2]
+ggplot(ToothGrowth, aes(x=Length)) +
+        geom_histogram(aes(y=..density..), binwidth=2, colour="black", fill="white") + 
+        geom_density(alpha=.2, fill="#FF6666") +
+        facet_grid(facets = .~Supplement) + 
+        geom_vline(aes(xintercept = Mean), z, color = "red", linetype = "dashed") 
+```
+
+Finally, we see, in the Fig. \ref{fig:density-len-dose-supp}, the density distribution of growth length for each pair of delivery methods and dose levels. The mean and the standard deviation of each of these pairs have been already represented in the data frame **sum_supp_dose** (see Sec. [3](#length_analysis)). The mean of the densities are represented with red dashed lines.  
+```{r, fig.height = 4, fig.width = 6, fig.cap="\\label{fig:density-len-dose-supp}The Density Distribution of Growth Length by Dose Levels and Delivery Methods"}
+v <- sum_supp_dose[, 1:3]
+ggplot(ToothGrowth, aes(x=Length)) +
+        geom_histogram(aes(y=..density..), binwidth=2, colour="black", fill="white") + 
+        geom_density(alpha=.2, fill="#FF6666") +
+        facet_grid(facets = Supplement~Dose) + 
+        geom_vline(aes(xintercept = Mean), v, color = "red", linetype = "dashed") 
+```
+
+# Hypothesis Tests {#hypothesis}
+In our data, there are two delivery methods (OJ and VC) and three different doses (0.5, 1, and 2). In the follwing, we see the mean of growth length for each pair of (delivery method, dose level):
+```{r}
+xtabs(Length/10 ~ Supplement + Dose, data = ToothGrowth)
+```
+Therefore, there are 15 potential comparisons of means (hece 15 potential hypothesis tests). In the following, we get the correspodning sub datasets.  
+
+```{r}
+data_OJ_5 <- ToothGrowth %>% filter(Dose == "0.5" & Supplement == "OJ") %>% select(Length)
+data_OJ_1 <- ToothGrowth %>% filter(Dose == "1" & Supplement == "OJ") %>% select(Length)
+data_OJ_2 <- ToothGrowth %>% filter(Dose == "2" & Supplement == "OJ") %>% select(Length)
+data_VC_5 <- ToothGrowth %>% filter(Dose == "0.5" & Supplement == "VC") %>% select(Length)
+data_VC_1 <- ToothGrowth %>% filter(Dose == "1" & Supplement == "VC") %>% select(Length)
+data_VC_2 <- ToothGrowth %>% filter(Dose == "2" & Supplement == "VC") %>% select(Length)
+```
+
+We test 15 possible null hypotheses by getting the corresponding p-values. The p-values are saved into a vector variable named **pvalues**. 
+
+```{r}
+pvalues <- NULL
+```
+
+We use the notation $\mu^{s}_{d}$, where $s\in\{OJ, VC\}, d\in\{0.5, 1, 2\}$, denotes the population mean of growth length for the given deleviry method $s$ and dose $d$.
+
+<!-- TEST 1 -->
+$\text{\underline{\em Hypothesis Test 1}}$:
+$$H_0: \mu^{OJ}_{0.5} = \mu^{OJ}_{1.0}$$
+$$H_a: \mu^{OJ}_{0.5} < \mu^{OJ}_{1.0}$$
+
+```{r}
+test1 <- t.test(x = data_OJ_5, y = data_OJ_1, alternative = "less")
+pvalues <- c(pvalues, test1$p.value)
+```
+
+
+<!-- TEST 2 -->
+$\text{\underline{\em Hypothesis Test 2}}$:
+$$H_0: \mu^{OJ}_{0.5} = \mu^{OJ}_{2.0}$$
+$$H_a: \mu^{OJ}_{0.5} < \mu^{OJ}_{2.0}$$
+```{r}
+test2 <- t.test(x = data_OJ_5, y = data_OJ_2, alternative = "less")
+pvalues <- c(pvalues, test2$p.value)
+```
+
+
+<!-- TEST 3 -->
+$\text{\underline{\em Hypothesis Test 3}}$:
+$$H_0: \mu^{OJ}_{1.0} = \mu^{OJ}_{2.0}$$
+$$H_a: \mu^{OJ}_{1.0} \neq \mu^{OJ}_{2.0}$$
+```{r}
+test3 <- t.test(x = data_OJ_1, y = data_OJ_2)
+pvalues <- c(pvalues, test3$p.value)
+```
+
+
+
+<!-- TEST 4 -->
+$\text{\underline{\em Hypothesis Test 4}}$:
+$$H_0: \mu^{VC}_{0.5} = \mu^{VC}_{1.0}$$
+$$H_a: \mu^{VC}_{0.5} < \mu^{VC}_{1.0}$$
+```{r}
+test4 <- t.test(x = data_VC_5, y = data_VC_1, alternative = "less")
+pvalues <- c(pvalues, test4$p.value)
+```
+
+
+
+<!-- TEST 5 -->
+$\text{\underline{\em Hypothesis Test 5}}$:
+$$H_0: \mu^{VC}_{0.5} = \mu^{VC}_{2.0}$$
+$$H_a: \mu^{VC}_{0.5} < \mu^{VC}_{2.0}$$
+```{r}
+test5 <- t.test(x = data_VC_5, y = data_VC_2, alternative = "less")
+pvalues <- c(pvalues, test5$p.value)
+```
+
+
+<!-- TEST 6 -->
+$\text{\underline{\em Hypothesis Test 6}}$:
+$$H_0: \mu^{VC}_{1.0} = \mu^{VC}_{2.0}$$
+$$H_a: \mu^{VC}_{1.0} < \mu^{VC}_{2.0}$$
+```{r}
+test6 <- t.test(x = data_VC_1, y = data_VC_2, alternative = "less")
+pvalues <- c(pvalues, test6$p.value)
+```
+
+
+
+<!-- TEST 7 -->
+$\text{\underline{\em Hypothesis Test 7}}$:
+$$H_0: \mu^{OJ}_{0.5} = \mu^{VC}_{0.5}$$
+$$H_a: \mu^{OJ}_{0.5} < \mu^{VC}_{0.5}$$
+```{r}
+test7 <- t.test(x = data_VC_1, y = data_VC_2, alternative = "less")
+pvalues <- c(pvalues, test7$p.value)
+```
+
+<!-- TEST 8 -->
+$\text{\underline{\em Hypothesis Test 8}}$:
+$$H_0: \mu^{OJ}_{0.5} = \mu^{VC}_{1.0}$$
+$$H_a: \mu^{OJ}_{0.5} \neq \mu^{VC}_{1.0}$$
+```{r}
+test8 <- t.test(x = data_OJ_5, y = data_VC_1)
+pvalues <- c(pvalues, test8$p.value)
+```
+
+<!-- TEST 9 -->
+$\text{\underline{\em Hypothesis Test 9}}$:
+$$H_0: \mu^{OJ}_{0.5} = \mu^{VC}_{2.0}$$
+$$H_a: \mu^{OJ}_{0.5} < \mu^{VC}_{2.0}$$
+```{r}
+test9 <- t.test(x = data_OJ_5, y = data_VC_2, alternative = "less")
+pvalues <- c(pvalues, test9$p.value)
+```
+
+<!-- TEST 10 -->
+$\text{\underline{\em Hypothesis Test 10}}$:
+$$H_0: \mu^{OJ}_{1.0} = \mu^{VC}_{0.5}$$
+$$H_a: \mu^{OJ}_{1.0} > \mu^{VC}_{0.5}$$
+```{r}
+test10 <- t.test(x = data_OJ_1, y = data_VC_5, alternative = "greater")
+pvalues <- c(pvalues, test10$p.value)
+```
+
+<!-- TEST 11 -->
+$\text{\underline{\em Hypothesis Test 11}}$:
+$$H_0: \mu^{OJ}_{1.0} = \mu^{VC}_{1.0}$$
+$$H_a: \mu^{OJ}_{1.0} > \mu^{VC}_{1.0}$$
+```{r}
+test11 <- t.test(x = data_OJ_1, y = data_VC_1, alternative = "greater")
+pvalues <- c(pvalues, test11$p.value)
+```
+
+<!-- TEST 12 -->
+$\text{\underline{\em Hypothesis Test 12}}$:
+$$H_0: \mu^{OJ}_{1.0} = \mu^{VC}_{2.0}$$
+$$H_a: \mu^{OJ}_{1.0} \neq \mu^{VC}_{2.0}$$
+```{r}
+test12 <- t.test(x = data_OJ_1, y = data_VC_2)
+pvalues <- c(pvalues, test12$p.value)
+```
+
+<!-- TEST 13 -->
+$\text{\underline{\em Hypothesis Test 13}}$:
+$$H_0: \mu^{OJ}_{2.0} = \mu^{VC}_{0.5}$$
+$$H_a: \mu^{OJ}_{2.0} > \mu^{VC}_{0.5}$$
+```{r}
+test13 <- t.test(x = data_OJ_2, y = data_VC_5, alternative = "greater")
+pvalues <- c(pvalues, test13$p.value)
+```
+
+<!-- TEST 14 -->
+$\text{\underline{\em Hypothesis Test 14}}$:
+$$H_0: \mu^{OJ}_{2.0} = \mu^{VC}_{1.0}$$
+$$H_a: \mu^{OJ}_{2.0} > \mu^{VC}_{1.0}$$
+```{r}
+test14 <- t.test(x = data_OJ_2, y = data_VC_1, alternative = "greater")
+pvalues <- c(pvalues, test14$p.value)
+```
+
+<!-- TEST 15 -->
+$\text{\underline{\em Hypothesis Test 15}}$:
+$$H_0: \mu^{OJ}_{2.0} = \mu^{VC}_{2.0}$$
+$$H_a: \mu^{OJ}_{2.0} \neq \mu^{VC}_{2.0}$$
+```{r}
+test15 <- t.test(x = data_OJ_2, y = data_VC_2)
+pvalues <- c(pvalues, test15$p.value)
+```
+
+Now, let us take a look at our p-values. They have been rounded with 2 digits:
+```{r}
+round(pvalues, 2)
+```
+
+Since we have done multiple hypothesis tests, we need to adjust our p-values. In the following, we do so using by the Bonferronni method:
+```{r}
+pvalues <- p.adjust(pvalues, method = "bonferroni")
+round(pvalues, 2)
+```
+Therefore, we reject the null hypothesis for the following tests:
+```{r}
+which(pvalues < 0.05)
+```
+
+And we failed to reject the null hypothesis of the follwoing tests with 95% confidence:
+```{r}
+which(pvalues >= 0.05)
+```
+
+That is, with 95% confidence, we choose the following hypotheses:
+
+- $\mu^{OJ}_{0.5} < \mu^{OJ}_{1.0}$ (the alternative hypothesis of Test 1). 
+
+-  $\mu^{OJ}_{0.5} < \mu^{OJ}_{2.0}$ (the alternative hypothese of Test 2). 
+
+- $\mu^{OJ}_{1.0} = \mu^{OJ}_{2.0}$ (the null hypothese of Test 3). 
+
+- $\mu^{VC}_{0.5} < \mu^{VC}_{1.0}$ (the alternative hypothese of Test 4). 
+
+- $\mu^{VC}_{0.5} < \mu^{VC}_{2.0}$ (the alternative hypothese of Test 5). 
+
+- $\mu^{VC}_{1.0} < \mu^{VC}_{2.0}$ (the alternative hypothese of Test 6). 
+
+- $\mu^{OJ}_{0.5} < \mu^{VC}_{0.5}$ (the alternative hypothese of Test 7). 
+
+- $\mu^{OJ}_{0.5} = \mu^{VC}_{1.0}$ (the null hypothesis of Test 8) 
+
+- $\mu^{OJ}_{0.5} < \mu^{VC}_{2.0}$ (the alternative hypothese of Test 9). 
+
+- $\mu^{OJ}_{1.0} > \mu^{VC}_{0.5}$ (the alternative hypothesis of Test 10) 
+
+- $\mu^{OJ}_{1.0} > \mu^{VC}_{1.0}$ (the alternative hypothesis of Test 11) 
+
+- $\mu^{OJ}_{1.0} = \mu^{VC}_{2.0}$ (the null hypothesis of Test 12) 
+
+- $\mu^{OJ}_{2.0} > \mu^{VC}_{0.5}$ (the alternative hypothesis of Test 13) 
+
+- $\mu^{OJ}_{2.0} > \mu^{VC}_{1.0}$ (the alternative hypothesis of Test 14) 
+
+- $\mu^{OJ}_{2.0} = \mu^{VC}_{2.0}$ (the null hypothesis of Test 15)
+
+
+# Conclusions {#conclusion}
+In this report, we have studies the ToothGrowth dataset. We have provided some basic summary analyses of the data. We have also provided some basic explorary analyses. Moreover, we have provided the density distributions of the growth length for all combinations of dose levels and delivery methods. Finally, we have done a mutiple hypothesis tests. A summary of our results is as follows:
+
+- As expected, more dose levels results in more growth. 
+
+- The delivery method OJ has more positive impact on the growth than VC. 
+
+See our hypothesis tests (and oher sections) for a detailed analysis. 

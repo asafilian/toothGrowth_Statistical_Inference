@@ -1,0 +1,2 @@
+# toothGrowth_Statistical_Inference
+We analyze the ToothGrowth data in the R datasets package. In this report, we do some basic summary statistics, we study the affects of dose levels and delivery methods in tooth growth based on the sample data. Also, we study the denisties of the data and some of its subsets. Moreover, we compare tooth growth with other elements in the data using by hypothesis tests.

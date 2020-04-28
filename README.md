@@ -5,7 +5,7 @@ In this project, I analyzed the effect of vitamin C in the teeth growth. The dat
 
 The following figure represents the relationship between growth length and dose levels categorized by delivery methods. The black solid line represents the mean of growth (i.e., ~18.81) in the whole data. A dashed black line represents the mean of growth for the associated delivery method (i.e., ~20.66 and ~16.96 for methods OJ and VC, respectively). The red, green, and blue dashed lines denote the mean of growth for dose levels 0.5, 1, and 2, respectively (i.e., ~10.61, ~19.73, and ~26.1, respectevily).
 
-![har](img/tgrowthbox.jpg)
+![har](img/tgrowthbox.JPG)
 
 Some (interesting) observations from the above figure are as follow: 
 - As expected, more dose levels results in more growth. 
